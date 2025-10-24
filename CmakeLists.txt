@@ -1,0 +1,104 @@
+cmake_minimum_required(VERSION 3.30)
+project(RetroSnakeGame VERSION 1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(FetchContent)
+
+# ---------------------------
+# Dependency fetcher helper
+# ---------------------------
+function(include_dependency libName gitURL gitTag)
+    FetchContent_Declare(${libName}
+        GIT_REPOSITORY ${gitURL}
+        GIT_TAG        ${gitTag}
+        GIT_SHALLOW    TRUE
+        GIT_PROGRESS   TRUE
+    )
+    FetchContent_MakeAvailable(${libName})
+endfunction()
+
+# ---------------------------
+# SDL3
+# ---------------------------
+find_package(SDL3 QUIET)
+if(NOT SDL3_FOUND)
+    message(STATUS "Fetching SDL3 from GitHub")
+    include_dependency(SDL3 https://github.com/libsdl-org/SDL.git release-3.2.18)
+else()
+    message(STATUS "Using locally installed SDL3")
+endif()
+
+# ---------------------------
+# SDL3_ttf
+# ---------------------------
+find_package(SDL3_ttf QUIET)
+if(NOT SDL3_ttf_FOUND)
+    message(STATUS "Fetching SDL3_ttf from GitHub")
+    include_dependency(SDL3_ttf https://github.com/libsdl-org/SDL_ttf.git main)
+else()
+    message(STATUS "Using locally installed SDL3_ttf")
+endif()
+
+# ---------------------------
+# Add executable and sources
+# ---------------------------
+add_executable(RetroSnakeGame)
+
+target_sources(RetroSnakeGame
+    PRIVATE
+        src/main.cpp
+        src/game.cpp
+        src/gameObject.cpp
+)
+
+target_include_directories(RetroSnakeGame PRIVATE ${PROJECT_SOURCE_DIR}/include)
+
+# ---------------------------
+# Compiler warnings
+# ---------------------------
+if (MSVC)
+    target_compile_options(RetroSnakeGame PRIVATE /W4 /permissive- /utf-8)
+else()
+    target_compile_options(RetroSnakeGame PRIVATE
+        -Wall -Wextra -Wpedantic
+        -Wconversion -Wsign-conversion
+        -Wshadow -Wold-style-cast -Wnon-virtual-dtor
+    )
+endif()
+
+# ---------------------------
+# SDL setup
+# ---------------------------
+target_compile_definitions(RetroSnakeGame PRIVATE SDL_MAIN_USE_CALLBACKS)
+target_link_libraries(RetroSnakeGame PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf)
+
+# ---------------------------
+# Windows DLL copy
+# ---------------------------
+if (WIN32)
+    add_custom_command(TARGET RetroSnakeGame POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "$<TARGET_FILE:SDL3::SDL3>"
+            "$<TARGET_FILE_DIR:RetroSnakeGame>"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "$<TARGET_FILE:SDL3_ttf::SDL3_ttf>"
+            "$<TARGET_FILE_DIR:RetroSnakeGame>"
+        VERBATIM
+    )
+endif()
+
+# ---------------------------
+# Visual Studio startup project
+# ---------------------------
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RetroSnakeGame)
+
+# ---------------------------
+# Copy assets folder to build output dir
+# ---------------------------
+add_custom_command(
+    TARGET RetroSnakeGame POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:RetroSnakeGame>/assets
+)
