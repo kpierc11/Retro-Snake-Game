@@ -2,9 +2,10 @@
 #include <cmath>
 #include <SDL3_ttf/SDL_ttf.h>
 
-float scoreTimePassed = 0;
+float m_moveTimer = 0.0f;
+float m_moveDelay = 0.16f;
 
-Game::Game() : m_window(nullptr), m_renderer(nullptr), m_screenWidth(900), m_screenHeight(480), m_gameScoreCount(0), m_gameRunning(true), m_currentFrameTime(SDL_GetTicks()), m_previousFrameTime(0)
+Game::Game() : m_window(nullptr), m_renderer(nullptr), m_screenWidth(900), m_screenHeight(480), m_gameScoreCount(0), m_cellSize(20), m_gameRunning(true), m_currentFrameTime(SDL_GetTicks()), m_previousFrameTime(0), m_grid({}), m_snake({this})
 {
 }
 
@@ -18,11 +19,10 @@ bool Game::InitGame()
     SDL_Init(SDL_INIT_VIDEO);
 
     m_window = SDL_CreateWindow(
-        "Retro Snake Game",     
-        m_screenWidth,   
-        m_screenHeight,   
-        SDL_WINDOW_OPENGL 
-    );
+        "Retro Snake Game",
+        m_screenWidth,
+        m_screenHeight,
+        SDL_WINDOW_OPENGL);
 
     if (m_window == NULL)
     {
@@ -44,11 +44,51 @@ bool Game::InitGame()
         return 0;
     }
 
-    char *filePath = SDL_GetPrefPath("EmberwindStudios", "PongGame");
+    // char *filePath = SDL_GetPrefPath("EmberwindStudios", "PongGame");
 
-    printf(filePath);
-    WriteGameFile();
-    ReadGameFile();
+    // printf(filePath);
+    // WriteGameFile();
+    // ReadGameFile();
+
+    // Create Snake
+    int rows = m_screenHeight / m_cellSize;
+    int columns = m_screenWidth / m_cellSize;
+
+    m_grid.clear();
+    m_grid.reserve(static_cast<size_t>(rows * columns));
+
+    for (int i = 0; i < rows; i++)
+    {
+        for (int j = 0; j < columns; j++)
+        {
+
+            SDL_FRect rect{};
+            rect.h = m_cellSize;
+            rect.w = m_cellSize;
+            rect.x = j * m_cellSize;
+            rect.y = i * m_cellSize;
+
+            m_grid.push_back(rect);
+        }
+    }
+
+    int centerIndex = ((rows * columns) - 100);
+    m_snake.m_snakeHead.x = m_grid[centerIndex].x;
+    m_snake.m_snakeHead.y = m_grid[centerIndex].y;
+    m_snake.m_currentSnakeGridPos = static_cast<int>(centerIndex);
+
+    for (int i = 0; i < 10; i++)
+    {
+        SDL_FRect rect{};
+        rect.h = m_snake.m_snakeSize;
+        rect.w = m_snake.m_snakeSize;
+        rect.x = (m_snake.m_snakeHead.x ) + (m_snake.m_snakeSize * i);
+        rect.y = m_snake.m_snakeHead.y;
+
+        m_snake.m_snakeBody.push_back(rect);
+    }
+
+    //std::cout << m_grid.size();
 
     return 1;
 }
@@ -93,34 +133,55 @@ void Game::HandleInput()
             m_gameRunning = false;
         }
 
-        if (event.type == SDL_EVENT_MOUSE_MOTION)
-        {
-        }
-
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
-           
-        }
-        if (event.type == SDL_EVENT_KEY_UP)
-        {
+            SDL_Keycode key = event.key.key;
+
+            switch (key)
+            {
+            case SDLK_W:
+                m_snake.m_currentDirection = Direction::North;
+                break;
+            case SDLK_S:
+                m_snake.m_currentDirection = Direction::South;
+                break;
+            case SDLK_A:
+                m_snake.m_currentDirection = Direction::West;
+                break;
+            case SDLK_D:
+                m_snake.m_currentDirection = Direction::East;
+                break;
+            default:
+                break;
+            }
         }
     }
 }
 
 void Game::UpdateGame(float deltaTime)
 {
-    float mouseX, mouseY;
 
-    SDL_GetMouseState(&mouseX, &mouseY);
+    m_moveTimer += deltaTime;
 
+    if (m_moveTimer >= m_moveDelay)
+    {
+        m_snake.Update(deltaTime);
+        m_moveTimer = 0.0f;
+    }
 }
 
 void Game::GenerateOutput()
 {
-
-    SDL_SetRenderDrawColor(m_renderer, 12, 12, 12, 255);
+    SDL_SetRenderDrawColor(m_renderer, 50, 169, 86, 255);
     SDL_RenderClear(m_renderer);
-    SDL_SetRenderDrawColor(m_renderer, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(m_renderer, 25, 25, 112, 255);
+    m_snake.Draw();
+
+    // //render grid
+    // for (auto &gridItem : m_grid)
+    // {
+    //     SDL_RenderRect(m_renderer, &gridItem);
+    // }
 
     SDL_RenderPresent(m_renderer);
 }
@@ -130,7 +191,6 @@ void Game::ReadGameFile()
     SDL_Storage *user = SDL_OpenUserStorage("EmberwindStudios", "PongGame", 0);
     if (user == NULL)
     {
-        // Something bad happened!
     }
     while (!SDL_StorageReady(user))
     {
@@ -150,13 +210,11 @@ void Game::ReadGameFile()
         }
         else
         {
-            // Something bad happened!
         }
         SDL_free(dst);
     }
     else
     {
-        // Something bad happened!
     }
 
     SDL_CloseStorage(user);

@@ -12,10 +12,10 @@ namespace GameMath
         Vector(float x, float y) : x(x), y(y) {}
     };
 
-    // inline Vector operator+(const Vector &a, const Vector &b)
-    // {
-    //     return Vector(a.x + b.x, a.y + b.y);
-    // }
+    inline Vector vectorAddition(const Vector &a, const Vector &b)
+    {
+        return Vector(a.x + b.x, a.y + b.y);
+    }
 
     // It's Lerping Time
     inline Vector Lerp(Vector &a, Vector b, float t)
