@@ -1,9 +1,11 @@
 #include "game.hpp"
 #include <cmath>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <cstdlib>
+#include <ctime>
 
 float m_moveTimer = 0.0f;
-float m_moveDelay = 0.16f;
+float m_moveDelay = 0.0625f;
 
 Game::Game() : m_window(nullptr), m_renderer(nullptr), m_screenWidth(900), m_screenHeight(480), m_gameScoreCount(0), m_cellSize(20), m_gameRunning(true), m_currentFrameTime(SDL_GetTicks()), m_previousFrameTime(0), m_grid({}), m_snake({this})
 {
@@ -77,18 +79,31 @@ bool Game::InitGame()
     m_snake.m_snakeHead.y = m_grid[centerIndex].y;
     m_snake.m_currentSnakeGridPos = static_cast<int>(centerIndex);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 2; i++)
     {
         SDL_FRect rect{};
         rect.h = m_snake.m_snakeSize;
         rect.w = m_snake.m_snakeSize;
-        rect.x = (m_snake.m_snakeHead.x ) + (m_snake.m_snakeSize * i);
+        rect.x = (m_snake.m_snakeHead.x) + (m_snake.m_snakeSize * i);
         rect.y = m_snake.m_snakeHead.y;
-
         m_snake.m_snakeBody.push_back(rect);
     }
 
-    //std::cout << m_grid.size();
+    srand(time(0));
+
+    for (int i = 0; i < 5; i++)
+    {
+        int randomNum = rand() % m_screenWidth;
+
+        int snakeFoodIndex = ((rows * columns) - randomNum);
+        SDL_FRect food{};
+        food.h = m_snake.m_snakeSize;
+        food.w = m_snake.m_snakeSize;
+        food.x = (m_grid[snakeFoodIndex].x);
+        food.y = (m_grid[snakeFoodIndex].y);
+
+        m_snake.m_snakeFood.push_back(food);
+    }
 
     return 1;
 }
@@ -140,17 +155,25 @@ void Game::HandleInput()
             switch (key)
             {
             case SDLK_W:
-                m_snake.m_currentDirection = Direction::North;
+                if (m_snake.m_currentDirection != Direction::South)
+                    m_snake.m_currentDirection = Direction::North;
                 break;
+
             case SDLK_S:
-                m_snake.m_currentDirection = Direction::South;
+                if (m_snake.m_currentDirection != Direction::North)
+                    m_snake.m_currentDirection = Direction::South;
                 break;
+
             case SDLK_A:
-                m_snake.m_currentDirection = Direction::West;
+                if (m_snake.m_currentDirection != Direction::East)
+                    m_snake.m_currentDirection = Direction::West;
                 break;
+
             case SDLK_D:
-                m_snake.m_currentDirection = Direction::East;
+                if (m_snake.m_currentDirection != Direction::West)
+                    m_snake.m_currentDirection = Direction::East;
                 break;
+
             default:
                 break;
             }
@@ -174,10 +197,10 @@ void Game::GenerateOutput()
 {
     SDL_SetRenderDrawColor(m_renderer, 50, 169, 86, 255);
     SDL_RenderClear(m_renderer);
-    SDL_SetRenderDrawColor(m_renderer, 25, 25, 112, 255);
     m_snake.Draw();
 
-    // //render grid
+    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
+    // render grid
     // for (auto &gridItem : m_grid)
     // {
     //     SDL_RenderRect(m_renderer, &gridItem);

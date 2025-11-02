@@ -10,11 +10,6 @@ enum class Direction
     West
 };
 
-struct PivotPoint {
-    Direction currentDirection;
-    int pivotPos;
-};
-
 class Snake : GameObject
 {
 
@@ -31,5 +26,5 @@ public:
     Direction m_currentDirection;
     SDL_FRect m_snakeHead;  
     std::vector<SDL_FRect> m_snakeBody{};
-    std::vector<PivotPoint> m_pivotPoints{};
+    std::vector<SDL_FRect> m_snakeFood{};
 };

@@ -62,17 +62,12 @@ void Snake::Update(float deltaTime)
 
     for (int i = m_snakeBody.size() - 1; i >= 0; i--)
     {
-
-        // // Store the first body x and y so we can make the next body item equal to these values.
-        // prevBodyPos.x = m_snakeBody[0].x;
-        // prevBodyPos.y = m_snakeBody[0].y;
-
-        std::cout << i << "\n";
-
-        // // Set the first body item to the previous snake head position.
-        // m_snakeBody[i].x = prevSnakeHeadPos.x;
-        // m_snakeBody[i].y = prevSnakeHeadPos.y;
-        // Set
+        if (m_snakeHead.x == m_snakeBody[i].x && m_snakeHead.y == m_snakeBody[i].y)
+        {
+            std::cout << "Snake head hit the body!" << "\n";
+            // SDL_RenderDebugText(m_game->m_renderer, static_cast<float>(m_game->m_screenWidth / 2), 10, "Game Over!!");
+            // m_game->m_gameRunning = false;
+        }
 
         if (i == 0)
         {
@@ -85,24 +80,43 @@ void Snake::Update(float deltaTime)
             m_snakeBody[i].y = m_snakeBody[i - 1].y;
         }
     }
+
+    for (auto &food : m_snakeFood)
+    {
+        if (m_snakeHead.x == food.x && m_snakeHead.y == food.y)
+        {
+            m_snakeBody.push_back(food);
+        }
+    }
 }
 
 void Snake::Draw()
 {
+    SDL_SetRenderDrawColor(m_game->GetRenderer(), 25, 25, 112, 255);
+
     SDL_RenderFillRect(m_game->GetRenderer(), &m_snakeHead);
+
+    SDL_SetRenderDrawColor(m_game->GetRenderer(), 135, 206, 250, 255);
 
     // std::cout << m_snakeBody.size() << "\n";
     for (auto &snakeBody : m_snakeBody)
     {
         SDL_RenderFillRect(m_game->GetRenderer(), &snakeBody);
     }
+
+    SDL_SetRenderDrawColor(m_game->GetRenderer(), 128, 0, 32, 255);
+
+    for (auto &food : m_snakeFood)
+    {
+        SDL_RenderFillRect(m_game->GetRenderer(), &food); 
+    }
 }
 
-void Snake::AddPivotPoint(Direction direction, int pivotPosition)
-{
-    PivotPoint pivot{};
-    pivot.currentDirection = direction;
-    pivot.pivotPos = pivotPosition;
+// void Snake::AddPivotPoint(Direction direction, int pivotPosition)
+// {
+//     PivotPoint pivot{};
+//     pivot.currentDirection = direction;
+//     pivot.pivotPos = pivotPosition;
 
-    m_pivotPoints.push_back(pivot);
-}
+//     m_pivotPoints.push_back(pivot);
+// }
