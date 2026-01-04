@@ -52,6 +52,7 @@ target_sources(RetroSnakeGame
         src/game.cpp
         src/gameObject.cpp
         src/snake.cpp
+        src/textureManager.cpp
 )
 
 target_include_directories(RetroSnakeGame PRIVATE ${PROJECT_SOURCE_DIR}/include)

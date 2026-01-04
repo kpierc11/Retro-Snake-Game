@@ -5,9 +5,9 @@
 #include <ctime>
 
 float m_moveTimer = 0.0f;
-float m_moveDelay = 0.0625f;
+float m_moveDelay = 0.1f;
 
-Game::Game() : m_window(nullptr), m_renderer(nullptr), m_screenWidth(900), m_screenHeight(480), m_gameScoreCount(0), m_cellSize(20), m_gameRunning(true), m_currentFrameTime(SDL_GetTicks()), m_previousFrameTime(0), m_grid({}), m_snake({this})
+Game::Game() : m_window(nullptr), m_renderer(nullptr), m_screenWidth(400), m_screenHeight(400), m_rows(0), m_columns(0), m_gameScoreCount(0), m_cellSize(20), m_gameRunning(true), m_currentFrameTime(SDL_GetTicks()), m_previousFrameTime(0), m_grid({}), m_snake({this}), m_TextureManager({})
 {
 }
 
@@ -32,7 +32,7 @@ bool Game::InitGame()
         return 0;
     }
 
-    m_renderer = SDL_CreateRenderer(m_window, "");
+    m_renderer = SDL_CreateRenderer(m_window, "" );
 
     if (m_renderer == NULL)
     {
@@ -46,35 +46,30 @@ bool Game::InitGame()
         return 0;
     }
 
-    // char *filePath = SDL_GetPrefPath("EmberwindStudios", "PongGame");
+    // Create Grid
+    m_rows = m_screenHeight / m_cellSize;
+    m_columns = m_screenWidth / m_cellSize;
 
-    // printf(filePath);
-    // WriteGameFile();
-    // ReadGameFile();
+    //m_grid.clear();
+   // m_grid.reserve(static_cast<size_t>(m_rows * m_columns));
 
-    // Create Snake
-    int rows = m_screenHeight / m_cellSize;
-    int columns = m_screenWidth / m_cellSize;
-
-    m_grid.clear();
-    m_grid.reserve(static_cast<size_t>(rows * columns));
-
-    for (int i = 0; i < rows; i++)
+    for (int i = 0; i < m_rows; i++)
     {
-        for (int j = 0; j < columns; j++)
+        for (int j = 0; j < m_columns; j++)
         {
 
             SDL_FRect rect{};
-            rect.h = m_cellSize;
-            rect.w = m_cellSize;
-            rect.x = j * m_cellSize;
-            rect.y = i * m_cellSize;
+            rect.h = static_cast<float>(m_cellSize);
+            rect.w = static_cast<float>(m_cellSize);
+            rect.x = static_cast<float>(j * m_cellSize);
+            rect.y = static_cast<float>(i * m_cellSize);
 
             m_grid.push_back(rect);
         }
     }
 
-    int centerIndex = ((rows * columns) - 100);
+    const int totalCells = static_cast<int>(m_grid.size());
+    int centerIndex = totalCells / 2;
     m_snake.m_snakeHead.x = m_grid[centerIndex].x;
     m_snake.m_snakeHead.y = m_grid[centerIndex].y;
     m_snake.m_currentSnakeGridPos = static_cast<int>(centerIndex);
@@ -93,17 +88,24 @@ bool Game::InitGame()
 
     for (int i = 0; i < 5; i++)
     {
-        int randomNum = rand() % m_screenWidth;
+        int randomNum = rand() % m_rows * m_columns - 1;
 
-        int snakeFoodIndex = ((rows * columns) - randomNum);
+        int snakeFoodIndex = rand() % (m_rows * m_columns) - 1;
         SDL_FRect food{};
         food.h = m_snake.m_snakeSize;
         food.w = m_snake.m_snakeSize;
-        food.x = (m_grid[snakeFoodIndex].x);
-        food.y = (m_grid[snakeFoodIndex].y);
+        food.x = m_grid[snakeFoodIndex].x; 
+        food.y = m_grid[snakeFoodIndex].y;
 
-        m_snake.m_snakeFood.push_back(food);
+        m_snake.m_snakeFood.push_back({food, true});
     }
+
+    SDL_Texture *snakeHeadTxt = m_TextureManager.LoadTexture(m_renderer, "assets/textures/snake-head-big.bmp");
+    SDL_Texture *snakeBodyText = m_TextureManager.LoadTexture(m_renderer, "assets/textures/snake-body.bmp");
+    SDL_Texture *foodText = m_TextureManager.LoadTexture(m_renderer, "assets/textures/apple.bmp");
+    m_snake.m_headTexture = snakeHeadTxt;
+    m_snake.m_bodyTexture = snakeBodyText;
+    m_snake.m_foodTexture = foodText;
 
     return 1;
 }
@@ -154,24 +156,36 @@ void Game::HandleInput()
 
             switch (key)
             {
-            case SDLK_W:
+            case SDLK_W: 
                 if (m_snake.m_currentDirection != Direction::South)
+                {
                     m_snake.m_currentDirection = Direction::North;
+                    m_snake.m_snakeHeadAngle = 270.0; // Facing up
+                }
                 break;
 
-            case SDLK_S:
+            case SDLK_S: 
                 if (m_snake.m_currentDirection != Direction::North)
+                {
                     m_snake.m_currentDirection = Direction::South;
+                    m_snake.m_snakeHeadAngle = 90.0; // Facing down
+                }
                 break;
 
-            case SDLK_A:
+            case SDLK_A: 
                 if (m_snake.m_currentDirection != Direction::East)
+                {
                     m_snake.m_currentDirection = Direction::West;
+                    m_snake.m_snakeHeadAngle = 180.0; // Facing left
+                }
                 break;
 
             case SDLK_D:
                 if (m_snake.m_currentDirection != Direction::West)
+                {
                     m_snake.m_currentDirection = Direction::East;
+                    m_snake.m_snakeHeadAngle = 0.0; // Facing right
+                }
                 break;
 
             default:
@@ -195,16 +209,16 @@ void Game::UpdateGame(float deltaTime)
 
 void Game::GenerateOutput()
 {
-    SDL_SetRenderDrawColor(m_renderer, 50, 169, 86, 255);
+    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderClear(m_renderer);
     m_snake.Draw();
 
-    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(m_renderer, 0, 0, 255, 255);
     // render grid
-    // for (auto &gridItem : m_grid)
-    // {
-    //     SDL_RenderRect(m_renderer, &gridItem);
-    // }
+    for (auto &gridItem : m_grid)
+    {
+        SDL_RenderRect(m_renderer, &gridItem);
+    }
 
     SDL_RenderPresent(m_renderer);
 }

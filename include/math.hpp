@@ -18,10 +18,10 @@ namespace GameMath
     }
 
     // It's Lerping Time
-    inline Vector Lerp(Vector &a, Vector b, float t)
+    inline Vector Lerp(const Vector &a, const Vector &b, float t)
     {
         return Vector(
-            a.x + (b.x - a.x) * (t * t) *.16f,
-            a.y + (b.y - a.y) * (t * t) *.16f);
+            a.x + (b.x - a.x) * t,
+            a.y + (b.y - a.y) * t);
     }
 }

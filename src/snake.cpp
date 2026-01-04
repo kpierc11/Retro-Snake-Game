@@ -11,49 +11,60 @@ Snake::Snake(Game *game) : GameObject(game), m_currentDirection(Direction::West)
     m_snakeSize = 20.0f;
     m_snakeHead.h = m_snakeSize;
     m_snakeHead.w = m_snakeSize;
+    m_snakeHeadAngle = 180.0;
+    m_headTexture = nullptr;
+    m_bodyTexture = nullptr;
+    m_foodTexture = nullptr;
 }
 
 Snake::~Snake()
 {
+    SDL_DestroyTexture(m_headTexture);
+    SDL_DestroyTexture(m_bodyTexture);
+    SDL_DestroyTexture(m_foodTexture);
 }
 
 void Snake::Update(float deltaTime)
 {
+
+    //Set the previous snake head position for reference
+    SetPrevSnakeHeadData({m_snakeHead.x, m_snakeHead.y}, m_snakeHeadAngle);
+
+    //Check the current direction of the snake and adjust positioning for changing
     if (m_currentDirection == Direction::North)
     {
-        prevSnakeHeadPos.y = m_snakeHead.y;
-        prevSnakeHeadPos.x = m_snakeHead.x;
-        if (m_currentSnakeGridPos - 45 < m_game->m_grid.size())
+        std::cout << "current snake grid pos north: " <<  m_currentSnakeGridPos<< "\n";
+        if (m_currentSnakeGridPos - m_game->m_columns < m_game->m_grid.size())
         {
-            m_snakeHead.y = m_game->m_grid[m_currentSnakeGridPos - 45].y;
-            m_currentSnakeGridPos = m_currentSnakeGridPos - 45;
+            m_snakeHead.y = m_game->m_grid[m_currentSnakeGridPos - m_game->m_columns].y;
+            m_currentSnakeGridPos = m_currentSnakeGridPos - m_game->m_columns;
         }
     }
     else if (m_currentDirection == Direction::South)
     {
-        prevSnakeHeadPos.y = m_snakeHead.y;
-        prevSnakeHeadPos.x = m_snakeHead.x;
-        if (m_currentSnakeGridPos + 45 < m_game->m_grid.size())
+
+        if (m_currentSnakeGridPos + m_game->m_columns < m_game->m_columns * m_game->m_rows)
         {
-            m_snakeHead.y = m_game->m_grid[m_currentSnakeGridPos + 45].y;
-            m_currentSnakeGridPos = m_currentSnakeGridPos + 45;
+            m_snakeHead.y = m_game->m_grid[m_currentSnakeGridPos + m_game->m_columns].y;
+            m_currentSnakeGridPos = m_currentSnakeGridPos + m_game->m_columns;
         }
     }
     else if (m_currentDirection == Direction::West)
     {
-        prevSnakeHeadPos.y = m_snakeHead.y;
-        prevSnakeHeadPos.x = m_snakeHead.x;
-        if (m_currentSnakeGridPos - 1 < m_game->m_grid.size())
+        std::cout << "current snake grid pos west: " <<  m_currentSnakeGridPos<< "\n";
+        std::cout << "Column Count: " <<  m_game->m_columns<< "\n";
+
+        if (m_currentSnakeGridPos - 1 < m_game->m_grid.size() )
         {
             m_snakeHead.x = m_game->m_grid[m_currentSnakeGridPos - 1].x;
-            m_currentSnakeGridPos = m_currentSnakeGridPos - 1;
+            m_currentSnakeGridPos = m_currentSnakeGridPos - 1 ;
+
         }
     }
     else if (m_currentDirection == Direction::East)
     {
-        prevSnakeHeadPos.y = m_snakeHead.y;
-        prevSnakeHeadPos.x = m_snakeHead.x;
-        if (m_currentSnakeGridPos + 1 < m_game->m_grid.size())
+
+        if (m_currentSnakeGridPos + 1 < m_game->m_columns)
         {
             m_snakeHead.x = m_game->m_grid[m_currentSnakeGridPos + 1].x;
             m_currentSnakeGridPos = m_currentSnakeGridPos + 1;
@@ -64,15 +75,14 @@ void Snake::Update(float deltaTime)
     {
         if (m_snakeHead.x == m_snakeBody[i].x && m_snakeHead.y == m_snakeBody[i].y)
         {
-            std::cout << "Snake head hit the body!" << "\n";
-            // SDL_RenderDebugText(m_game->m_renderer, static_cast<float>(m_game->m_screenWidth / 2), 10, "Game Over!!");
-            // m_game->m_gameRunning = false;
+            // std::cout << "Snake head hit the body!" << "\n";
+            m_game->m_gameRunning = false;
         }
 
         if (i == 0)
         {
-            m_snakeBody[i].x = prevSnakeHeadPos.x;
-            m_snakeBody[i].y = prevSnakeHeadPos.y;
+            m_snakeBody[i].x = m_snakeHeadPreLoc.prevHeadLocData.x;
+            m_snakeBody[i].y = m_snakeHeadPreLoc.prevHeadLocData.y;
         }
         else
         {
@@ -81,11 +91,12 @@ void Snake::Update(float deltaTime)
         }
     }
 
-    for (auto &food : m_snakeFood)
+    for (auto &item : m_snakeFood)
     {
-        if (m_snakeHead.x == food.x && m_snakeHead.y == food.y)
+        if (m_snakeHead.x == item.food.x && m_snakeHead.y == item.food.y)
         {
-            m_snakeBody.push_back(food);
+            m_snakeBody.push_back(item.food);
+            item.showFood = false;
         }
     }
 }
@@ -96,27 +107,42 @@ void Snake::Draw()
 
     SDL_RenderFillRect(m_game->GetRenderer(), &m_snakeHead);
 
+    // SDL_RenderRotated(m_game->GetRenderer(),
+    //                          m_headTexture,
+    //                          nullptr,
+    //                          &m_snakeHead,
+    //                          m_snakeHeadAngle,
+    //                          nullptr,
+    //                          SDL_FLIP_NONE);
+
     SDL_SetRenderDrawColor(m_game->GetRenderer(), 135, 206, 250, 255);
 
-    // std::cout << m_snakeBody.size() << "\n";
     for (auto &snakeBody : m_snakeBody)
     {
-        SDL_RenderFillRect(m_game->GetRenderer(), &snakeBody);
+        // SDL_RenderTextureRotated(m_game->GetRenderer(),
+        //                          m_bodyTexture,
+        //                          nullptr,
+        //                          &snakeBody,
+        //                          m_snakeHeadPreLoc.rotAngle,
+        //                          nullptr,
+        //                          SDL_FLIP_NONE);
+        SDL_RenderFillRect(m_game->m_renderer, &snakeBody);
     }
 
     SDL_SetRenderDrawColor(m_game->GetRenderer(), 128, 0, 32, 255);
 
-    for (auto &food : m_snakeFood)
+    for (auto &item : m_snakeFood)
     {
-        SDL_RenderFillRect(m_game->GetRenderer(), &food); 
+        if (item.showFood)
+        {
+            SDL_RenderFillRect(m_game->GetRenderer(), &item.food);
+        }
+        // SDL_RenderTexture(m_game->GetRenderer(), m_foodTexture, NULL, &food);
     }
 }
 
-// void Snake::AddPivotPoint(Direction direction, int pivotPosition)
-// {
-//     PivotPoint pivot{};
-//     pivot.currentDirection = direction;
-//     pivot.pivotPos = pivotPosition;
-
-//     m_pivotPoints.push_back(pivot);
-// }
+void Snake::SetPrevSnakeHeadData(GameMath::Vector prevLocation, double currentAngle)
+{
+    m_snakeHeadPreLoc.prevHeadLocData = prevLocation;
+    m_snakeHeadPreLoc.rotAngle = currentAngle;
+}
