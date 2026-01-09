@@ -9,6 +9,9 @@ float m_moveDelay = 0.1f;
 
 Game::Game() : m_window(nullptr), m_renderer(nullptr), m_screenWidth(400), m_screenHeight(400), m_rows(0), m_columns(0), m_gameScoreCount(0), m_cellSize(20), m_gameRunning(true), m_currentFrameTime(SDL_GetTicks()), m_previousFrameTime(0), m_grid({}), m_snake({this}), m_TextureManager({})
 {
+
+    m_rows = m_screenHeight / m_cellSize;
+    m_columns = m_screenWidth / m_cellSize;
 }
 
 Game::~Game()
@@ -32,7 +35,7 @@ bool Game::InitGame()
         return 0;
     }
 
-    m_renderer = SDL_CreateRenderer(m_window, "" );
+    m_renderer = SDL_CreateRenderer(m_window, "");
 
     if (m_renderer == NULL)
     {
@@ -45,13 +48,6 @@ bool Game::InitGame()
         SDL_Log("Couldn't initialize SDL_ttf: %s\n", SDL_GetError());
         return 0;
     }
-
-    // Create Grid
-    m_rows = m_screenHeight / m_cellSize;
-    m_columns = m_screenWidth / m_cellSize;
-
-    //m_grid.clear();
-   // m_grid.reserve(static_cast<size_t>(m_rows * m_columns));
 
     for (int i = 0; i < m_rows; i++)
     {
@@ -68,11 +64,9 @@ bool Game::InitGame()
         }
     }
 
-    const int totalCells = static_cast<int>(m_grid.size());
-    int centerIndex = totalCells / 2;
-    m_snake.m_snakeHead.x = m_grid[centerIndex].x;
-    m_snake.m_snakeHead.y = m_grid[centerIndex].y;
-    m_snake.m_currentSnakeGridPos = static_cast<int>(centerIndex);
+    m_snake.m_currentSnakeGridPos = 250;
+    m_snake.m_snakeHead.x = m_grid[m_snake.m_currentSnakeGridPos].x;
+    m_snake.m_snakeHead.y = m_grid[m_snake.m_currentSnakeGridPos].y;
 
     for (int i = 0; i < 2; i++)
     {
@@ -87,14 +81,12 @@ bool Game::InitGame()
     srand(time(0));
 
     for (int i = 0; i < 5; i++)
-    {
-        int randomNum = rand() % m_rows * m_columns - 1;
-
-        int snakeFoodIndex = rand() % (m_rows * m_columns) - 1;
+    { 
+         int snakeFoodIndex = rand() % (m_rows * m_columns) - 1;
         SDL_FRect food{};
         food.h = m_snake.m_snakeSize;
         food.w = m_snake.m_snakeSize;
-        food.x = m_grid[snakeFoodIndex].x; 
+        food.x = m_grid[snakeFoodIndex].x;
         food.y = m_grid[snakeFoodIndex].y;
 
         m_snake.m_snakeFood.push_back({food, true});
@@ -133,7 +125,14 @@ void Game::GameLoop()
         m_previousFrameTime = m_currentFrameTime;
 
         HandleInput();
-        UpdateGame(deltaTime);
+
+        m_moveTimer += deltaTime;
+
+        if (m_moveTimer >= m_moveDelay)
+        {
+            UpdateGame(deltaTime);
+        }
+
         GenerateOutput();
     }
 }
@@ -156,7 +155,7 @@ void Game::HandleInput()
 
             switch (key)
             {
-            case SDLK_W: 
+            case SDLK_W:
                 if (m_snake.m_currentDirection != Direction::South)
                 {
                     m_snake.m_currentDirection = Direction::North;
@@ -164,7 +163,7 @@ void Game::HandleInput()
                 }
                 break;
 
-            case SDLK_S: 
+            case SDLK_S:
                 if (m_snake.m_currentDirection != Direction::North)
                 {
                     m_snake.m_currentDirection = Direction::South;
@@ -172,7 +171,7 @@ void Game::HandleInput()
                 }
                 break;
 
-            case SDLK_A: 
+            case SDLK_A:
                 if (m_snake.m_currentDirection != Direction::East)
                 {
                     m_snake.m_currentDirection = Direction::West;
@@ -198,28 +197,27 @@ void Game::HandleInput()
 void Game::UpdateGame(float deltaTime)
 {
 
-    m_moveTimer += deltaTime;
+    // m_moveTimer += deltaTime;
 
-    if (m_moveTimer >= m_moveDelay)
-    {
-        m_snake.Update(deltaTime);
-        m_moveTimer = 0.0f;
-    }
+    // if (m_moveTimer >= m_moveDelay)
+    // {
+    m_snake.Update(deltaTime);
+    m_moveTimer = 0.0f;
+    //}
 }
 
 void Game::GenerateOutput()
 {
-    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(m_renderer, 244, 164, 96, 255);
     SDL_RenderClear(m_renderer);
     m_snake.Draw();
 
-    SDL_SetRenderDrawColor(m_renderer, 0, 0, 255, 255);
-    // render grid
-    for (auto &gridItem : m_grid)
-    {
-        SDL_RenderRect(m_renderer, &gridItem);
-    }
-
+    SDL_SetRenderDrawColor(m_renderer, 210, 105, 30, 255);
+    // // render grid
+    // for (auto &gridItem : m_grid)
+    // {
+    //     SDL_RenderRect(m_renderer, &gridItem);
+    // }
     SDL_RenderPresent(m_renderer);
 }
 

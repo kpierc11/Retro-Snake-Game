@@ -15,6 +15,7 @@ Snake::Snake(Game *game) : GameObject(game), m_currentDirection(Direction::West)
     m_headTexture = nullptr;
     m_bodyTexture = nullptr;
     m_foodTexture = nullptr;
+    srand(time(0));
 }
 
 Snake::~Snake()
@@ -27,13 +28,12 @@ Snake::~Snake()
 void Snake::Update(float deltaTime)
 {
 
-    //Set the previous snake head position for reference
+    // Set the previous snake head position for reference
     SetPrevSnakeHeadData({m_snakeHead.x, m_snakeHead.y}, m_snakeHeadAngle);
 
-    //Check the current direction of the snake and adjust positioning for changing
+    // Check the current direction of the snake and adjust positioning for changing
     if (m_currentDirection == Direction::North)
     {
-        std::cout << "current snake grid pos north: " <<  m_currentSnakeGridPos<< "\n";
         if (m_currentSnakeGridPos - m_game->m_columns < m_game->m_grid.size())
         {
             m_snakeHead.y = m_game->m_grid[m_currentSnakeGridPos - m_game->m_columns].y;
@@ -51,22 +51,21 @@ void Snake::Update(float deltaTime)
     }
     else if (m_currentDirection == Direction::West)
     {
-        std::cout << "current snake grid pos west: " <<  m_currentSnakeGridPos<< "\n";
-        std::cout << "Column Count: " <<  m_game->m_columns<< "\n";
 
-        if (m_currentSnakeGridPos - 1 < m_game->m_grid.size() )
+        if (m_currentSnakeGridPos - 1 < m_game->m_grid.size())
         {
             m_snakeHead.x = m_game->m_grid[m_currentSnakeGridPos - 1].x;
-            m_currentSnakeGridPos = m_currentSnakeGridPos - 1 ;
-
+            m_snakeHead.y = m_game->m_grid[m_currentSnakeGridPos - 1].y;
+            m_currentSnakeGridPos = m_currentSnakeGridPos - 1;
         }
     }
     else if (m_currentDirection == Direction::East)
     {
 
-        if (m_currentSnakeGridPos + 1 < m_game->m_columns)
+        if (m_currentSnakeGridPos + 1 < m_game->m_screenWidth)
         {
             m_snakeHead.x = m_game->m_grid[m_currentSnakeGridPos + 1].x;
+            m_snakeHead.y = m_game->m_grid[m_currentSnakeGridPos + 1].y;
             m_currentSnakeGridPos = m_currentSnakeGridPos + 1;
         }
     }
@@ -75,7 +74,6 @@ void Snake::Update(float deltaTime)
     {
         if (m_snakeHead.x == m_snakeBody[i].x && m_snakeHead.y == m_snakeBody[i].y)
         {
-            // std::cout << "Snake head hit the body!" << "\n";
             m_game->m_gameRunning = false;
         }
 
@@ -93,17 +91,28 @@ void Snake::Update(float deltaTime)
 
     for (auto &item : m_snakeFood)
     {
-        if (m_snakeHead.x == item.food.x && m_snakeHead.y == item.food.y)
+        if (m_snakeHead.x == item.food.x && m_snakeHead.y == item.food.y && item.showFood)
         {
             m_snakeBody.push_back(item.food);
             item.showFood = false;
+        }
+    }
+
+    for (auto &item : m_snakeFood)
+    {
+        if (!item.showFood)
+        {
+            int randomPos = rand() % (m_game->m_rows * m_game->m_columns) - 1;
+            item.food.x = m_game->m_grid[randomPos].x;
+            item.food.y = m_game->m_grid[randomPos].y;
+            item.showFood = true;
         }
     }
 }
 
 void Snake::Draw()
 {
-    SDL_SetRenderDrawColor(m_game->GetRenderer(), 25, 25, 112, 255);
+    SDL_SetRenderDrawColor(m_game->GetRenderer(), 139, 69, 19, 255);
 
     SDL_RenderFillRect(m_game->GetRenderer(), &m_snakeHead);
 
@@ -115,7 +124,7 @@ void Snake::Draw()
     //                          nullptr,
     //                          SDL_FLIP_NONE);
 
-    SDL_SetRenderDrawColor(m_game->GetRenderer(), 135, 206, 250, 255);
+    SDL_SetRenderDrawColor(m_game->GetRenderer(), 210, 105, 30, 255);
 
     for (auto &snakeBody : m_snakeBody)
     {
